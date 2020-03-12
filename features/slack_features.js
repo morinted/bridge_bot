@@ -43,57 +43,14 @@ module.exports = function(controller) {
     });
 
     controller.hears('blocks', 'message', async(bot, message) => {
-
         await bot.reply(message,{
             blocks: [
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "Hello, Assistant to the Regional Manager Dwight! *Michael Scott* wants to know where you'd like to take the Paper Company investors to dinner tonight.\n\n *Please select a restaurant:*"
+                        "text": "Here is your hand:"
                     }
-                },
-                {
-                    "type": "divider"
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Farmhouse Thai Cuisine*\n:star::star::star::star: 1528 reviews\n They do have some vegan options, like the roti and curry, plus they have a ton of salad stuff and noodles can be ordered without meat!! They have something for everyone here"
-                    },
-                    "accessory": {
-                        "type": "image",
-                        "image_url": "https://s3-media3.fl.yelpcdn.com/bphoto/c7ed05m9lC2EmA3Aruue7A/o.jpg",
-                        "alt_text": "alt text for image"
-                    }
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Kin Khao*\n:star::star::star::star: 1638 reviews\n The sticky rice also goes wonderfully with the caramelized pork belly, which is absolutely melt-in-your-mouth and so soft."
-                    },
-                    "accessory": {
-                        "type": "image",
-                        "image_url": "https://s3-media2.fl.yelpcdn.com/bphoto/korel-1YjNtFtJlMTaC26A/o.jpg",
-                        "alt_text": "alt text for image"
-                    }
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Ler Ros*\n:star::star::star::star: 2082 reviews\n I would really recommend the  Yum Koh Moo Yang - Spicy lime dressing and roasted quick marinated pork shoulder, basil leaves, chili & rice powder."
-                    },
-                    "accessory": {
-                        "type": "image",
-                        "image_url": "https://s3-media2.fl.yelpcdn.com/bphoto/DawwNigKJ2ckPeDeDM7jAg/o.jpg",
-                        "alt_text": "alt text for image"
-                    }
-                },
-                {
-                    "type": "divider"
                 },
                 {
                     "type": "actions",
@@ -102,28 +59,92 @@ module.exports = function(controller) {
                             "type": "button",
                             "text": {
                                 "type": "plain_text",
-                                "text": "Farmhouse",
+                                "text": "1♠️",
                                 "emoji": true
                             },
-                            "value": "Farmhouse"
+                            "value": "1s"
                         },
                         {
                             "type": "button",
                             "text": {
                                 "type": "plain_text",
-                                "text": "Kin Khao",
+                                "text": "2♠️",
                                 "emoji": true
                             },
-                            "value": "Kin Khao"
+                            "value": "2s"
                         },
                         {
                             "type": "button",
                             "text": {
                                 "type": "plain_text",
-                                "text": "Ler Ros",
+                                "text": "3♥️",
                                 "emoji": true
                             },
-                            "value": "Ler Ros"
+                            "value": "3h"
+                        }
+                    ]
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "K♥️",
+                                "emoji": true
+                            },
+                            "value": "Kh"
+                        },
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "2♣️",
+                                "emoji": true
+                            },
+                            "value": "2c"
+                        },
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "A♣️",
+                                "emoji": true
+                            },
+                            "value": "Ac"
+                        }
+                    ]
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "1♦️",
+                                "emoji": true
+                            },
+                            "value": "1d"
+                        },
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "7♦️",
+                                "emoji": true
+                            },
+                            "value": "7d"
+                        },
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "10♦️",
+                                "emoji": true
+                            },
+                            "value": "10d"
                         }
                     ]
                 }
@@ -133,7 +154,50 @@ module.exports = function(controller) {
     });
 
     controller.on('block_actions', async (bot, message) => {
-        await bot.reply(message, `Sounds like your choice is ${ message.incoming_message.channelData.actions[0].value }`)
+        await bot.replyInteractive(message,
+            {
+                blocks: [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "No more " + message.incoming_message.channelData.actions[0].value
+                        }
+                    },
+                    {
+                        "type": "actions",
+                        "elements": [
+                            {
+                                "type": "button",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "1♠️",
+                                    "emoji": true
+                                },
+                                "value": "1s"
+                            },
+                            {
+                                "type": "button",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "2♠️",
+                                    "emoji": true
+                                },
+                                "value": "2s"
+                            },
+                            {
+                                "type": "button",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "3♥️",
+                                    "emoji": true
+                                },
+                                "value": "3h"
+                            }
+                        ]
+                    }
+                ]
+            })
     });
 
     controller.on('slash_command', async(bot, message) => {
