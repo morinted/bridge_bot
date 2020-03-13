@@ -1,5 +1,5 @@
-const { findLastIndex } = require('lodash')
-const { SUITS } = require('./suits')
+const { findLastIndex, flatMap } = require('lodash')
+const { SUITS, ORDERED_SUITS } = require('./suits')
 const { CONTRACT_TYPES, createContract } = require('./contracts')
 
 const BID_TYPES = {
@@ -39,6 +39,10 @@ const createBid = (type, level = null, suit = null) => {
     suit,
   }
 }
+
+const BIDS = flatMap(Object.values(BID_LEVELS).sort(), level =>
+  ORDERED_SUITS.map(suit => createBid(BID_TYPES.BID, level, suit.id))
+)
 
 /**
  * Given an array of bids, return the winning contract along with the declarer's index, assuming dealer is 0.
@@ -87,5 +91,16 @@ const getContract = bids => {
     declarerIndex
   )
 }
-
-module.exports = { BID_TYPES, getContract, createBid, BID_LEVELS }
+const PASS = createBid(BID_TYPES.PASS)
+const DOUBLE = createBid(BID_TYPES.DOUBLE)
+const REDOUBLE = createBid(BID_TYPES.REDOUBLE)
+module.exports = {
+  BID_TYPES,
+  getContract,
+  createBid,
+  BID_LEVELS,
+  BIDS,
+  PASS,
+  DOUBLE,
+  REDOUBLE,
+}

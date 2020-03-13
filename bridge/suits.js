@@ -44,4 +44,8 @@ const SUITS = {
 const compareSuits = (suitIdA, suitIdB) =>
   SUITS[suitIdA].rank - SUITS[suitIdB].rank
 
-module.exports = { SUITS, compareSuits }
+const ORDERED_SUITS = Object.values(SUITS).sort((a, b) =>
+  compareSuits(a.id, b.id)
+)
+
+module.exports = { SUITS, ORDERED_SUITS, compareSuits }

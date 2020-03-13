@@ -4,6 +4,7 @@ const {
   getContract,
   createBid,
   BID_LEVELS,
+  BIDS,
 } = require('../bridge/bidding')
 const { createContract, CONTRACT_TYPES } = require('../bridge/contracts')
 
@@ -12,6 +13,10 @@ const heart = SUITS.HEARTS.id
 const diamond = SUITS.DIAMONDS.id
 const spade = SUITS.SPADES.id
 const notrump = SUITS.NOTRUMP.id
+
+test('possible bids', () => {
+  expect(BIDS).toHaveLength(7 * 5)
+})
 
 test('simple contract detection', () => {
   expect(

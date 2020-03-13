@@ -13,7 +13,6 @@ test('deck length', () => {
 
 test('shuffling', () => {
   const shuffled = getShuffledDeck()
-  // console.log(shuffled)
   expect(shuffled).not.toEqual(DECK)
 })
 
@@ -29,7 +28,6 @@ test('sort cards', () => {
 
 test('hands', () => {
   const hands = getHands()
-  console.log(hands)
   expect(hands).toHaveLength(4)
   hands.forEach(hand => expect(hand).toHaveLength(13))
 })
