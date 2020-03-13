@@ -1,3 +1,7 @@
+const { findLastIndex } = require('lodash')
+const { SUITS } = require('./suits')
+const { CONTRACT_TYPES, createContract } = require('./contracts')
+
 const BID_TYPES = {
   BID: 'BID',
   DOUBLE: 'DOUBLE',
@@ -15,19 +19,26 @@ const BID_LEVELS = {
   '7': '7',
 }
 
-const createBid = (type, level = null) => {
+const createBid = (type, level = null, suit = null) => {
+  if (type !== BID_TYPES.BID && (level || suit)) {
+    throw new Error('do not provide level or suit when type is not bid')
+  }
   if (level) {
-    if (type !== BID_TYPES.BID) {
-      throw new Error('do not provide level when type is bid')
-    }
     if (!(level in BID_LEVELS)) {
       throw new Error('not a valid level ' + level)
     }
   }
-  return {
-    type, level
+  if (suit) {
+    if (!(suit in SUITS)) {
+      throw new Error('not a valid suit ' + suit)
+    }
   }
-)
+  return {
+    type,
+    level,
+    suit,
+  }
+}
 
 /**
  * Given an array of bids, return the winning contract along with the declarer's index, assuming dealer is 0.
@@ -43,11 +54,38 @@ const getContract = bids => {
     return null
   }
 
-  const lastBidIndex = bids.length - 4
-  const lastBid = bids[lastBidIndex]
-  if (lastBid.type === BID_TYPES.REDOUBLE) {
+  const lastSay = bids[bids.length - 4]
 
-  }
+  const redoubled = lastSay.type === BID_TYPES.REDOUBLE
+  const doubled = lastSay.type === BID_TYPES.DOUBLE
+
+  const lastBidIndex = findLastIndex(bids, bid => bid.type === BID_TYPES.BID)
+  const lastBid = bids[lastBidIndex]
+
+  // 0, 1, 2, 3
+  // 0, 1, 0, 1 ← Team mod will be the same for partners based on index.
+  const teamMod = lastBidIndex % 2
+
+  const suit = lastBid.suit
+  const firstSuitBidIndex = bids.findIndex((bid, index) => {
+    if (index % 2 !== teamMod) return false
+    if (bid.suit === suit) return true
+  })
+  // If opener (0) wins, then that's 1 from the dealer.
+  // If dealer (3) wins, then that's 0 from the dealer.
+  // So add 1 to get declarer.
+  const declarerIndex = (firstSuitBidIndex + 1) % 4
+
+  return createContract(
+    lastBid.suit,
+    lastBid.level,
+    redoubled
+      ? CONTRACT_TYPES.REDOUBLED
+      : doubled
+      ? CONTRACT_TYPES.DOUBLED
+      : CONTRACT_TYPES.NORMAL,
+    declarerIndex
+  )
 }
 
-module.exports = { BID_TYPES }
+module.exports = { BID_TYPES, getContract, createBid, BID_LEVELS }
