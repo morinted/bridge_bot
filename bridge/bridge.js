@@ -1,5 +1,5 @@
 const { isEqual, findLast, findLastIndex } = require('lodash')
-const { getHands } = require('./deck')
+const { getHands, cardToString } = require('./deck')
 const {
   BID_TYPES,
   getContract,
@@ -7,6 +7,7 @@ const {
   PASS,
   DOUBLE,
   REDOUBLE,
+  BIDS,
 } = require('./bidding')
 const { trickWinnerIndex } = require('./tricks')
 
@@ -27,7 +28,6 @@ const defaultState = () => ({
   bids: [],
   contract: null,
   trick: [],
-  leader: null,
   turn: null,
   declarerTricks: 0,
   opponentTricks: 0,
@@ -41,7 +41,7 @@ const defaultState = () => ({
  */
 const nextPlayer = (state, player) => {
   player = player || state.turn
-  const newPlayer = state.players[(players.indexOf(player) + 1) % 4]
+  const newPlayer = state.players[(state.players.indexOf(player) + 1) % 4]
   return newPlayer
 }
 
@@ -80,34 +80,35 @@ const makeBid = state => {
       return { state, layCard: layCard(state) }
     }
 
-    state.player = nextPlayer(state)
+    state.turn = nextPlayer(state)
     return { state, makeBid: makeBid(state) }
   }
 }
 
 const layCard = state => {
-  const { turn, trick } = state
+  const { turn } = state
   return card => {
     state.trick = [...state.trick, card]
     // Consume card.
-    const handWithoutCard = state.hands[state.player].filter(
+    const handWithoutCard = state.playerHands[state.turn].filter(
       cardInHand => !isEqual(card, cardInHand)
     )
-    if (handWithoutCard.length === state.hands[state.player].length) {
+    if (handWithoutCard.length === state.playerHands[state.turn].length) {
       throw new Error('played a card that was not in player hand')
     }
-    state.hands[state.player] = handWithoutCard
+    state.playerHands[state.turn] = handWithoutCard
 
     switch (state.phase) {
       case PHASES.TRICK:
         if (state.trick.length !== 4) {
           // Play next trick.
+          state.turn = nextPlayer(state)
           return { state, layCard: layCard(state) }
         }
         // Evaluate winner of trick.
-        const winnerIndex = trickWinnerIndex(trick, state.contract.suitId)
+        const winnerIndex = trickWinnerIndex(state.trick, state.contract.suitId)
         // To convert to player, use current player
-        const currentIndex = state.players.indexOf(state.player)
+        const currentIndex = state.players.indexOf(state.turn)
         // Winner of trick is current player plus one plus trick offset.
         // Meaning if N leads, E wins, then it's the index of W (3) plus 1
         // plus winner of trick (1) = 5, mod 4, 1 → index of E.
@@ -122,6 +123,7 @@ const layCard = state => {
         if (handWithoutCard.length === 0) {
           // End of game
           state.phase = PHASES.RESULT
+          state.turn = null
           state.contractResult =
             state.declarerTricks - 6 - parseInt(state.contract.level, 10)
           return { state }
@@ -150,8 +152,10 @@ const getPossibleBids = state => {
   )
 
   if (latestBidIndex === -1) {
-    return [, ...BIDS]
+    return [PASS, ...BIDS]
   }
+
+  const latestBid = state.bids[latestBidIndex]
 
   const latestSayIndex = findLastIndex(
     state.bids,
@@ -163,7 +167,7 @@ const getPossibleBids = state => {
   const redoubled = latestSay === BID_TYPES.REDOUBLE
 
   // [pass, bid, pass], index 1, length is 3, current bidder is same team.
-  const isBidSameTeam = latestBidIndex % 2 === bids.length % 2
+  const isBidSameTeam = latestBidIndex % 2 === state.bids.length % 2
 
   const canDouble = !doubled && !redoubled && !isBidSameTeam
   const canRedouble = doubled && !redoubled && isBidSameTeam
@@ -179,7 +183,55 @@ const getPossibleBids = state => {
   ]
 }
 
+/**
+ * Get the current player's possible playable cards.
+ */
+const getPossibleCards = state => {
+  if (
+    [PHASES.FIRST_LEAD, PHASES.TRICK, PHASES.TRICK_WON].every(
+      phase => state.phase !== phase
+    )
+  ) {
+    return []
+  }
+
+  const leadCard = state.trick[0] || null
+  const trickSuit = leadCard ? leadCard.suitId : null
+  const currentPlayerHand = state.playerHands[state.turn]
+
+  if (!trickSuit) return currentPlayerHand
+  const [sameSuit, otherSuit] = currentPlayerHand.reduce(
+    ([sameSuit, otherSuit], card) => {
+      if (card.suitId === trickSuit) {
+        sameSuit.push(card)
+      } else {
+        otherSuit.push(card)
+      }
+      return [sameSuit, otherSuit]
+    },
+    [[], []]
+  )
+
+  // Can't follow
+  if (!sameSuit.length) return otherSuit
+
+  // Must follow
+  return sameSuit
+}
+
+const handsToString = state => {
+  const playerHandToString = player =>
+    `${player === state.turn ? '*' : '-'} ${player}: ${state.playerHands[player]
+      .map(cardToString)
+      .join('   ')} ${player === state.dummy ? ' (Dummy)' : ''}`
+  return state.players.map(playerHandToString).join('\n')
+}
+
 module.exports = {
   getPossibleBids,
+  getPossibleCards,
   startGame,
+  PHASES,
+  layCard,
+  handsToString,
 }

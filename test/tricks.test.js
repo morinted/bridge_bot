@@ -56,6 +56,17 @@ test('trump-in', () => {
       heart
     )
   ).toEqual(2)
+  expect(
+    trickWinnerIndex(
+      [
+        createCard(diamond, 'A'),
+        createCard(club, 'A'),
+        createCard(heart, '2'),
+        createCard(heart, '3'),
+      ],
+      heart
+    )
+  ).toEqual(3)
 })
 
 test('no trumps', () => {

@@ -1,5 +1,5 @@
 const { SUITS, compareSuits } = require('./suits')
-const { compareRanks } = require('./deck')
+const { compareRanks, compareCards } = require('./deck')
 
 const trickWinnerIndex = ([lead, second, third, fourth], trumpId) => {
   const leadSuitId = lead.suitId

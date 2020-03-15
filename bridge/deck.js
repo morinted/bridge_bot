@@ -7,7 +7,17 @@ const RANK_INDEX = RANKS.reduce((acc, rank, index) => {
   return acc
 }, {})
 
-const createCard = (suitId, rank) => ({ suitId, rank })
+const createCard = (suitId, rank) => {
+  if (!(suitId in SUITS)) {
+    throw new Error('invalid suit id ' + suitId)
+  }
+  if (!(rank in RANK_INDEX)) {
+    throw new Error('invalid rank ' + rank)
+  }
+  return { suitId, rank }
+}
+
+const cardToString = ({ suitId, rank }) => `${rank} ${SUITS[suitId].emoji}`
 
 const DECK = flatMap(
   [SUITS.CLUBS, SUITS.DIAMONDS, SUITS.HEARTS, SUITS.SPADES].map(suit =>
@@ -46,4 +56,5 @@ module.exports = {
   compareCards,
   compareRanks,
   getHands,
+  cardToString,
 }
