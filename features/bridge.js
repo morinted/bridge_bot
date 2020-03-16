@@ -144,8 +144,7 @@ module.exports = function(controller) {
           return { id, name }
         })
         .map(({ id }) => id)
-      mentionedPlayers = uniq(mentionedPlayers)
-      if (mentionedPlayers.length !== 3) {
+      if (uniq([dealer, ...mentionedPlayers]).length !== 4) {
         throw new Error('not enough players mentioned for a game')
       }
     } catch (e) {
