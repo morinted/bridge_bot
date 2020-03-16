@@ -164,8 +164,8 @@ const getPossibleBids = state => {
   )
   const latestSay = state.bids[latestSayIndex]
 
-  const doubled = latestSay === BID_TYPES.DOUBLE
-  const redoubled = latestSay === BID_TYPES.REDOUBLE
+  const doubled = latestSay.type === BID_TYPES.DOUBLE
+  const redoubled = latestSay.type === BID_TYPES.REDOUBLE
 
   // [pass, bid, pass], index 1, length is 3, current bidder is same team.
   const isBidSameTeam = latestBidIndex % 2 === state.bids.length % 2

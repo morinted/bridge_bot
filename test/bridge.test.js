@@ -42,6 +42,13 @@ test('make bidding', () => {
   expect(bids).toContainEqual(PASS)
   expect(bids).toContainEqual(DOUBLE)
   expect(bids).not.toContainEqual(REDOUBLE)
+  ;({ state, makeBid } = makeBid(DOUBLE))
+  bids = getPossibleBids(state)
+
+  expect(bids).toContainEqual(PASS)
+  expect(bids).not.toContainEqual(DOUBLE)
+  expect(bids).toContainEqual(REDOUBLE)
+
   const twoClub = createBid(BID_TYPES.BID, BID_LEVELS['2'], SUITS.CLUBS.id)
   expect(bids).not.toContainEqual(oneClub)
   expect(bids).toContainEqual(twoClub)

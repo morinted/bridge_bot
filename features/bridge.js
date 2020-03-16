@@ -23,11 +23,8 @@ module.exports = function(controller) {
     trickTexts
 
   const updatePlayerHands = async bot => {
-    console.log('players', players)
     const cards = getPossibleCards(state)
     for (player of players) {
-      console.log('player', player)
-
       // Dummy does not play.
       if (player === state.dummy) continue
       const isDeclarer = player === state.declarer
@@ -48,7 +45,6 @@ module.exports = function(controller) {
           await bot.deleteMessage(playerMessages[player])
         }
         await bot.startPrivateConversation(player)
-        console.log('send hand')
         const sent = await bot.say({
           blocks: [
             {
@@ -105,7 +101,6 @@ module.exports = function(controller) {
 
   controller.hears('deal', 'message', async (bot, message) => {
     if (!message.text.startsWith('deal ')) return
-    console.log('Hey I just got message ', JSON.stringify(message, null, 2))
     const dealer = message.user
     let mentionedPlayers
     try {
@@ -144,17 +139,14 @@ module.exports = function(controller) {
 
     players = [dealer, ...mentionedPlayers]
     ;({ state, makeBid } = startGame(...players))
-    console.log('welcome message')
     const gameMessage = await bot.replyInThread(
       message,
       `Welcome to the game. Dealer is <@${dealer}>, partner is <@${players[2]}>. Opposing is <@${players[1]}> and <@${players[3]}>. <@${state.turn}> has first bid.`
     )
-    console.log('game message\n' + JSON.stringify(gameMessage, null, 2))
     await updatePlayerHands(bot)
   })
 
   controller.on('block_actions', async (bot, message) => {
-    console.log(state)
     const trickMessageStats = () =>
       `${
         state.declarerTricks ? `Declarer Tricks: ${state.declarerTricks}` : ''
@@ -164,7 +156,6 @@ module.exports = function(controller) {
 
     if (state.phase === PHASES.BID) {
       // Clear out buttons once a selection has been made.
-      console.log('reply empty')
       await bot.replyInteractive(
         message,
         playerHandForMessage(state.turn, state)
@@ -184,13 +175,11 @@ module.exports = function(controller) {
         )
       }
       if (bidMessage) {
-        console.log('updating bid')
         await bot.updateMessage({
           text: bidTexts.join('\n'),
           ...bidMessage,
         })
       } else {
-        console.log('starting bid')
         await bot.startConversationInThread(
           threadMessage.channel,
           threadMessage.user,
@@ -214,7 +203,6 @@ module.exports = function(controller) {
       const player = state.turn
       ;({ state, layCard } = layCard(card))
       // Clear out buttons once card has been played
-      console.log('clear out')
       await bot.replyInteractive(
         message,
         playerHandForMessage(
@@ -241,15 +229,11 @@ module.exports = function(controller) {
         )
       }
       if (trickMessage) {
-        console.log('update trick')
-
         await bot.updateMessage({
           text: trickMessageStats() + trickTexts.join('\n'),
           ...trickMessage,
         })
       } else {
-        console.log('another trick?')
-
         await bot.startConversationInThread(
           threadMessage.channel,
           threadMessage.user,
@@ -257,9 +241,7 @@ module.exports = function(controller) {
         )
         trickMessage = await bot.say(trickMessageStats() + cardText)
       }
-      if (state.phase !== PHASES.RESULT) {
-        await updatePlayerHands(bot)
-      }
+      await updatePlayerHands(bot)
     }
   })
 }
