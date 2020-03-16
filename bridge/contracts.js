@@ -1,3 +1,4 @@
+const { SUITS } = require('./suits')
 const CONTRACT_TYPES = {
   NORMAL: 'NORMAL',
   DOUBLED: 'DOUBLED',
@@ -16,4 +17,10 @@ const createContract = (suitId, level, type, declarerIndex) => {
   }
 }
 
-module.exports = { createContract, CONTRACT_TYPES }
+const contractToString = ({ suitId, level, type }) => {
+  return `${level} ${SUITS[suitId].name}${
+    { NORMAL: '', DOUBLED: ', doubled', REDOUBLED: ', redoubled' }[type]
+  }`
+}
+
+module.exports = { createContract, CONTRACT_TYPES, contractToString }

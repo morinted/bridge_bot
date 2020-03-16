@@ -94,6 +94,14 @@ const getContract = bids => {
 const PASS = createBid(BID_TYPES.PASS)
 const DOUBLE = createBid(BID_TYPES.DOUBLE)
 const REDOUBLE = createBid(BID_TYPES.REDOUBLE)
+
+const bidToString = bid => {
+  if (bid.type === BID_TYPES.PASS) return 'Pass'
+  if (bid.type === BID_TYPES.DOUBLE) return 'X'
+  if (bid.type === BID_TYPES.REDOUBLE) return 'XX'
+  return `${bid.level} ${SUITS[bid.suit].name}`
+}
+
 module.exports = {
   BID_TYPES,
   getContract,
@@ -103,4 +111,5 @@ module.exports = {
   PASS,
   DOUBLE,
   REDOUBLE,
+  bidToString,
 }
