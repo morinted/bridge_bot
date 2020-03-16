@@ -23,8 +23,6 @@ module.exports = function(controller) {
     trickTexts
 
   const getInteractiveHandMessage = player => {
-    // Dummy does not play.
-    if (player === state.dummy) return []
     const isDeclarer = player === state.declarer
 
     const leading =
@@ -70,7 +68,8 @@ module.exports = function(controller) {
     for (player of players) {
       // Dummy does not play.
       if (player === state.dummy) continue
-      const handMessage = getInteractiveHandMessage(player)
+      const targetPlayer = player === state.dummy ? state.declarer : player
+      const handMessage = getInteractiveHandMessage(targetPlayer)
 
       if (!playerMessages[player] || handMessage.blocks.length > 1) {
         await bot.startPrivateConversation(player)
@@ -239,7 +238,8 @@ module.exports = function(controller) {
       const player = state.turn
       ;({ state, layCard } = layCard(card))
       // Clear out buttons once card has been played
-      const handMessage = getInteractiveHandMessage(player)
+      const targetPlayer = player === state.dummy ? state.declarer : player
+      const handMessage = getInteractiveHandMessage(targetPlayer)
       await bot.replyInteractive(message, handMessage)
       trickTexts.push(cardText)
       if (state.phase === PHASES.TRICK_WON) {
