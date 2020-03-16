@@ -27,9 +27,26 @@ module.exports = function(controller) {
     if (player === state.dummy) return []
     const isDeclarer = player === state.declarer
 
+    const leading =
+      state.phase === PHASES.FIRST_LEAD || state.phase === PHASES.TRICK_WON
+    const following = state.phase === PHASES.TRICK
+    const isPlayerTurn =
+      (isDeclarer && state.turn === state.dummy) || state.turn === player
+
+    const trickHintText = isPlayerTurn
+      ? leading
+        ? '\n\n*Select a card to lead*'
+        : following
+        ? '\n\n_You are following a trick_'
+        : ''
+      : ''
+
     const textToSend =
       playerHandForMessage(player, state) +
-      (isDeclarer && state.turn === state.dummy ? '\n\n*Play from dummy.*' : '')
+      (isDeclarer && state.turn === state.dummy
+        ? '\n\n*Play from dummy.*'
+        : '') +
+      trickHintText
     const actions = [
       ...bidActions(player, state),
       ...cardActions(player, state),
@@ -156,10 +173,10 @@ module.exports = function(controller) {
   controller.on('block_actions', async (bot, message) => {
     const trickMessageStats = () =>
       `${
-        state.declarerTricks ? `Declarer Tricks: ${state.declarerTricks}` : ''
+        state.declarerTricks ? `*Declarer Tricks:* ${state.declarerTricks}` : ''
       }\n${
-        state.opponentTricks ? `Opponent Tricks: ${state.opponentTricks}` : ''
-      }\nDummy:\n${playerHandForMessage(state.dummy, state)}\n\n`
+        state.opponentTricks ? `*Opponent Tricks:* ${state.opponentTricks}` : ''
+      }\n\n*Dummy:*\n${playerHandForMessage(state.dummy, state)}\n\n`
 
     if (state.phase === PHASES.BID) {
       // Clear out buttons once a selection has been made.
@@ -213,7 +230,10 @@ module.exports = function(controller) {
       ) {
         return // Impossible play, just ignore.
       }
-      const cardText = `<@${state.turn}>: ${cardToString(card)}`
+      const getDummyNote = () => (state.turn === state.dummy ? '(Dummy) ' : '')
+      const cardText = `<@${state.turn}>: ${cardToString(
+        card
+      )} ${getDummyNote()}`
       const player = state.turn
       ;({ state, layCard } = layCard(card))
       // Clear out buttons once card has been played
@@ -221,13 +241,12 @@ module.exports = function(controller) {
       await bot.replyInteractive(message, handMessage)
       trickTexts.push(cardText)
       if (state.phase === PHASES.TRICK_WON) {
-        trickTexts.push(`<@${state.turn}> wins.`)
+        trickTexts.push(`<@${state.turn}> ${getDummyNote()}wins.`)
       }
 
       if (state.phase === PHASES.RESULT) {
         const winners = state.contractResult >= 0 ? 'Declarers' : 'Opponents'
-        const overUnder =
-          state.contractResult >= 0 ? 'Overtricks' : 'Undertricks'
+        const overUnder = state.contractResult >= 0 ? 'Over' : 'Under'
         trickTexts.push(
           '',
           `${winners} win.${

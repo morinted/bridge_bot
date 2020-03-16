@@ -221,12 +221,17 @@ const getPossibleCards = state => {
 }
 
 const playerHandForMessage = (player, state) => {
+  const contractSuit = state.contract.suitId
   const hand = state.playerHands[player]
   return (
     ORDERED_SUITS.map(suit => {
+      const isTrump = contractSuit === suit.id
+      const surround = isTrump ? '*' : ''
       const cardsOfSuit = hand.filter(card => card.suitId === suit.id)
       if (!cardsOfSuit.length) return null
-      return `${suit.emoji} ${cardsOfSuit.map(card => card.rank).join(' ')}`
+      return `${suit.emoji} ${surround}${cardsOfSuit
+        .map(card => card.rank)
+        .join(' ')}${surround}`
     })
       .filter(x => x)
       .join('\n') || "You're empty handed 🙌"
