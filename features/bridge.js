@@ -56,12 +56,12 @@ module.exports = function(controller) {
       const handMessage = getInteractiveHandMessage(player)
 
       if (!playerMessages[player] || handMessage.blocks.length > 1) {
+        await bot.startPrivateConversation(player)
+        const sent = await bot.say(handMessage)
         if (playerMessages[player]) {
           // We delete the old message when providing actions.
           await bot.deleteMessage(playerMessages[player])
         }
-        await bot.startPrivateConversation(player)
-        const sent = await bot.say(handMessage)
         playerMessages[player] = sent
       }
     }

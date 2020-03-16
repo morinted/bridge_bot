@@ -222,13 +222,15 @@ const getPossibleCards = state => {
 
 const playerHandForMessage = (player, state) => {
   const hand = state.playerHands[player]
-  return ORDERED_SUITS.map(suit => {
-    const cardsOfSuit = hand.filter(card => card.suitId === suit.id)
-    if (!cardsOfSuit.length) return null
-    return `${suit.emoji} ${cardsOfSuit.map(card => card.rank).join(' ')}`
-  })
-    .filter(x => x)
-    .join('\n')
+  return (
+    ORDERED_SUITS.map(suit => {
+      const cardsOfSuit = hand.filter(card => card.suitId === suit.id)
+      if (!cardsOfSuit.length) return null
+      return `${suit.emoji} ${cardsOfSuit.map(card => card.rank).join(' ')}`
+    })
+      .filter(x => x)
+      .join('\n') || "You're empty handed 🙌"
+  )
 }
 
 const handsToString = state => {
