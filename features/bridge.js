@@ -234,7 +234,9 @@ module.exports = function(controller) {
         trickTexts.push(
           '',
           `${winners} win.${
-            state.contractResult ? ` ${state.contractResult} ${overUnder}!` : ''
+            state.contractResult
+              ? ` ${Math.abs(state.contractResult)} ${overUnder}!`
+              : ''
           }`
         )
       }
