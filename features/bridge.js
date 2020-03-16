@@ -1,4 +1,4 @@
-const { chunk, isEqual } = require('lodash')
+const { chunk, isEqual, uniq } = require('lodash')
 const { bidToString } = require('../bridge/bidding')
 const {
   startGame,
@@ -144,6 +144,7 @@ module.exports = function(controller) {
           return { id, name }
         })
         .map(({ id }) => id)
+      mentionedPlayers = uniq(mentionedPlayers)
       if (mentionedPlayers.length !== 3) {
         throw new Error('not enough players mentioned for a game')
       }
