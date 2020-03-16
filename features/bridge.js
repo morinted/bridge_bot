@@ -123,6 +123,8 @@ module.exports = function(controller) {
 
   controller.hears('deal', 'message', async (bot, message) => {
     if (!message.text.startsWith('deal ')) return
+    // Game ongoing
+    if (state) return
     const dealer = message.user
     let mentionedPlayers
     try {
@@ -272,6 +274,9 @@ module.exports = function(controller) {
       if (handMessage.blocks.length === 1) {
         // Update player hands unless the last player is going again.
         await updatePlayerHands(bot)
+      }
+      if (state.phase === PHASES.RESULT) {
+        state = null
       }
     }
   })
