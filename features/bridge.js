@@ -140,11 +140,13 @@ module.exports = function(controller) {
     bidTexts = []
     trickTexts = []
     threadMessage = message
+    bidMessage = null
+    trickMessage = null
     playerMessages = {}
 
     players = [dealer, ...mentionedPlayers]
     ;({ state, makeBid } = startGame(...players))
-    const gameMessage = await bot.replyInThread(
+    await bot.replyInThread(
       message,
       `Welcome to the game. Dealer is <@${dealer}>, partner is <@${players[2]}>. Opposing is <@${players[1]}> and <@${players[3]}>. <@${state.turn}> has first bid.`
     )
