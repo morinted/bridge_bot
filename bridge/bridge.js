@@ -221,7 +221,7 @@ const getPossibleCards = state => {
 }
 
 const playerHandForMessage = (player, state) => {
-  const contractSuit = state.contract.suitId
+  const contractSuit = state.contract ? state.contract.suitId : null
   const hand = state.playerHands[player]
   return (
     ORDERED_SUITS.map(suit => {
