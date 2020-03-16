@@ -22,41 +22,46 @@ module.exports = function(controller) {
     bidTexts,
     trickTexts
 
+  const getInteractiveHandMessage = player => {
+    // Dummy does not play.
+    if (player === state.dummy) return []
+    const isDeclarer = player === state.declarer
+
+    const textToSend =
+      playerHandForMessage(player, state) +
+      (isDeclarer && state.turn === state.dummy ? '\n\n*Play from dummy.*' : '')
+    const actions = [
+      ...bidActions(player, state),
+      ...cardActions(player, state),
+      ...(isDeclarer ? cardActions(state.dummy, state) : []),
+    ]
+    return {
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: textToSend,
+          },
+        },
+        ...actions,
+      ],
+    }
+  }
+
   const updatePlayerHands = async bot => {
-    const cards = getPossibleCards(state)
     for (player of players) {
       // Dummy does not play.
       if (player === state.dummy) continue
-      const isDeclarer = player === state.declarer
+      const handMessage = getInteractiveHandMessage(player)
 
-      const textToSend =
-        playerHandForMessage(player, state) +
-        (isDeclarer && state.turn === state.dummy
-          ? '\n\n*Play from dummy.*'
-          : '')
-      const actions = [
-        ...bidActions(player, state),
-        ...cardActions(player, state),
-        ...(isDeclarer ? cardActions(state.dummy, state) : []),
-      ]
-      if (!playerMessages[player] || actions.length) {
+      if (!playerMessages[player] || handMessage.blocks.length > 1) {
         if (playerMessages[player]) {
           // We delete the old message when providing actions.
           await bot.deleteMessage(playerMessages[player])
         }
         await bot.startPrivateConversation(player)
-        const sent = await bot.say({
-          blocks: [
-            {
-              type: 'section',
-              text: {
-                type: 'mrkdwn',
-                text: textToSend,
-              },
-            },
-            ...actions,
-          ],
-        })
+        const sent = await bot.say(handMessage)
         playerMessages[player] = sent
       }
     }
@@ -203,13 +208,8 @@ module.exports = function(controller) {
       const player = state.turn
       ;({ state, layCard } = layCard(card))
       // Clear out buttons once card has been played
-      await bot.replyInteractive(
-        message,
-        playerHandForMessage(
-          player === state.dummy ? state.declarer : player,
-          state
-        )
-      )
+      const handMessage = getInteractiveHandMessage(player)
+      await bot.replyInteractive(message, handMessage)
       trickTexts.push(cardText)
       if (state.phase === PHASES.TRICK_WON) {
         trickTexts.push(`<@${state.turn}> wins.`)
@@ -241,7 +241,10 @@ module.exports = function(controller) {
         )
         trickMessage = await bot.say(trickMessageStats() + cardText)
       }
-      await updatePlayerHands(bot)
+      if (handMessage.blocks.length === 1) {
+        // Update player hands unless the last player is going again.
+        await updatePlayerHands(bot)
+      }
     }
   })
 }
