@@ -1,4 +1,4 @@
-const { chunk } = require('lodash')
+const { chunk, isEqual } = require('lodash')
 const { bidToString } = require('../bridge/bidding')
 const {
   startGame,
@@ -206,6 +206,13 @@ module.exports = function(controller) {
       const card = JSON.parse(
         message.incoming_message.channelData.actions[0].value
       )
+      if (
+        getPossibleCards(state).every(
+          playableCard => !isEqual(playableCard, card)
+        )
+      ) {
+        return // Impossible play, just ignore.
+      }
       const cardText = `<@${state.turn}>: ${cardToString(card)}`
       const player = state.turn
       ;({ state, layCard } = layCard(card))
