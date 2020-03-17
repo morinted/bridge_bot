@@ -145,7 +145,8 @@ module.exports = function(controller) {
           return { id, name }
         })
         .map(({ id }) => id)
-      if (uniq([dealer, ...mentionedPlayers]).length !== 4) {
+      mentionedPlayers = uniq([dealer, ...mentionedPlayers])
+      if (mentionedPlayers.length !== 4) {
         throw new Error('not enough players mentioned for a game')
       }
     } catch (e) {
@@ -163,7 +164,7 @@ module.exports = function(controller) {
     trickMessage = null
     playerMessages = {}
 
-    players = [dealer, ...mentionedPlayers]
+    players = mentionedPlayers
     ;({ state, makeBid } = startGame(...players))
 
     handSummary = players.map(player =>
