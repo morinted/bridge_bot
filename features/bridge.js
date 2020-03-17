@@ -261,8 +261,8 @@ module.exports = function(controller) {
               ? ` ${Math.abs(state.contractResult)} ${overUnder}!`
               : ''
           }`
-        trickTexts.push(handSummary)
         )
+        trickTexts.push(handSummary)
       }
       if (trickMessage) {
         await bot.updateMessage({
