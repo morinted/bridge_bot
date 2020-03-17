@@ -167,8 +167,8 @@ module.exports = function(controller) {
     ;({ state, makeBid } = startGame(...players))
 
     handSummary = players.map(player =>
-      `<@${player}>: ${playerHandForMessage(player, state)}`
-    ).join('\n\n')
+      `\n<@${player}>:\n${playerHandForMessage(player, state)}`
+    ).join('\n')
     await bot.replyInThread(
       message,
       `Welcome to the game. Dealer is <@${dealer}>, partner is <@${players[2]}>. Opposing is <@${players[1]}> and <@${players[3]}>. <@${state.turn}> has first bid.`
