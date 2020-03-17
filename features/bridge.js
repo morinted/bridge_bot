@@ -20,7 +20,8 @@ module.exports = function(controller) {
     bidMessage,
     trickMessage,
     bidTexts,
-    trickTexts
+    trickTexts,
+    handSummary
 
   const getInteractiveHandMessage = player => {
     const isDeclarer = player === state.declarer
@@ -164,6 +165,10 @@ module.exports = function(controller) {
 
     players = [dealer, ...mentionedPlayers]
     ;({ state, makeBid } = startGame(...players))
+
+    handSummary = players.map(player =>
+      `<@${player}>: ${playerHandForMessage()}`
+    ).join('\n\n')
     await bot.replyInThread(
       message,
       `Welcome to the game. Dealer is <@${dealer}>, partner is <@${players[2]}>. Opposing is <@${players[1]}> and <@${players[3]}>. <@${state.turn}> has first bid.`
@@ -256,6 +261,7 @@ module.exports = function(controller) {
               ? ` ${Math.abs(state.contractResult)} ${overUnder}!`
               : ''
           }`
+        trickTexts.push(handSummary)
         )
       }
       if (trickMessage) {
