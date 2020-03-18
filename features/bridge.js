@@ -170,6 +170,7 @@ module.exports = function(controller) {
         throw new Error('not enough players mentioned for a game')
       }
     } catch (e) {
+      console.error(e)
       await bot.reply(
         message,
         'You have to mention the three other players to deal a hand.'
