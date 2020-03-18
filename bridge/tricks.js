@@ -1,4 +1,4 @@
-const { SUITS, compareSuits } = require('./suits')
+const { SUITS } = require('./suits')
 const { compareRanks, compareCards } = require('./deck')
 
 const trickWinnerIndex = ([lead, second, third, fourth], trumpId) => {

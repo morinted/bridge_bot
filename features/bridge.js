@@ -32,6 +32,25 @@ module.exports = function(controller) {
     const isPlayerTurn =
       (isDeclarer && state.turn === state.dummy) || state.turn === player
 
+    const actions = [
+      ...bidActions(player, state),
+      ...cardActions(player, state),
+      ...(isDeclarer ? cardActions(state.dummy, state) : []),
+    ]
+
+    // When there are actions, give more context for mobile users.
+    const hasActions = !!actions.length
+
+    const contextText = !hasActions
+      ? ''
+      : state.phase === PHASES.BID
+      ? bidTexts.join('\n') // Show bidding as it's been so far
+      : state.phase === PHASES.FIRST_LEAD
+      ? bidTexts.slice(-1)[0] // Display contract
+      : state.phase === PHASES.TRICK || state.phase === PHASES.TRICK_WON
+      ? `${getDummyHand()}\n\n${trickTexts.join('\n\n')}` // Show dummy and current/last trick.
+      : ''
+
     const trickHintText = isPlayerTurn
       ? leading
         ? '\n\n*Select a card to lead*'
@@ -41,16 +60,12 @@ module.exports = function(controller) {
       : ''
 
     const textToSend =
+      contextText +
       playerHandForMessage(player, state) +
       (isDeclarer && state.turn === state.dummy
         ? '\n\n*Play from dummy.*'
         : '') +
       trickHintText
-    const actions = [
-      ...bidActions(player, state),
-      ...cardActions(player, state),
-      ...(isDeclarer ? cardActions(state.dummy, state) : []),
-    ]
     return {
       blocks: [
         {
@@ -66,7 +81,7 @@ module.exports = function(controller) {
   }
 
   const updatePlayerHands = async bot => {
-    for (player of players) {
+    for (let player of players) {
       // Dummy does not play.
       if (player === state.dummy) continue
       const targetPlayer = player === state.dummy ? state.declarer : player
@@ -121,6 +136,9 @@ module.exports = function(controller) {
     value: JSON.stringify(card),
   })
 
+  const getDummyHand = () =>
+    `*Dummy:*\n${playerHandForMessage(state.dummy, state)}`
+
   controller.hears('deal', 'message', async (bot, message) => {
     if (!message.text.startsWith('deal ')) return
     // Game ongoing
@@ -167,9 +185,9 @@ module.exports = function(controller) {
     players = mentionedPlayers
     ;({ state, makeBid } = startGame(...players))
 
-    handSummary = players.map(player =>
-      `\n<@${player}>:\n${playerHandForMessage(player, state)}`
-    ).join('\n')
+    handSummary = players
+      .map(player => `\n<@${player}>:\n${playerHandForMessage(player, state)}`)
+      .join('\n')
     await bot.replyInThread(
       message,
       `Welcome to the game. Dealer is <@${dealer}>, partner is <@${players[2]}>. Opposing is <@${players[1]}> and <@${players[3]}>. <@${state.turn}> has first bid.`
@@ -183,7 +201,7 @@ module.exports = function(controller) {
         state.declarerTricks ? `*Declarer Tricks:* ${state.declarerTricks}` : ''
       }\n${
         state.opponentTricks ? `*Opponent Tricks:* ${state.opponentTricks}` : ''
-      }\n\n*Dummy:*\n${playerHandForMessage(state.dummy, state)}\n\n`
+      }\n\n${getDummyHand()}\n\n`
 
     if (state.phase === PHASES.BID) {
       // Clear out buttons once a selection has been made.
@@ -205,9 +223,10 @@ module.exports = function(controller) {
           }>, first lead <@${state.turn}>`
         )
       }
+      const nextBidMessage = `\nNext bid: <@${state.turn}>`
       if (bidMessage) {
         await bot.updateMessage({
-          text: bidTexts.join('\n'),
+          text: bidTexts.join('\n') + nextBidMessage,
           ...bidMessage,
         })
       } else {
@@ -265,9 +284,12 @@ module.exports = function(controller) {
         )
         trickTexts.push(handSummary)
       }
+      const nextTrickMessage =
+        state.phase === PHASES.TRICK ? `\nNext lay: <@${state.turn}>` : ''
+
       if (trickMessage) {
         await bot.updateMessage({
-          text: trickMessageStats() + trickTexts.join('\n'),
+          text: trickMessageStats() + trickTexts.join('\n') + nextTrickMessage,
           ...trickMessage,
         })
       } else {

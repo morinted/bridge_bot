@@ -16,6 +16,7 @@
     "dotenv": "^7.0.0"
   },
   "devDependencies": {
+    "eslint-config-prettier": "^6.10.0",
     "jest": "^25.1.0",
     "lodash": "^4.17.15"
   }

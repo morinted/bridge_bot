@@ -8,12 +8,6 @@ const {
 } = require('../bridge/bidding')
 const { createContract, CONTRACT_TYPES } = require('../bridge/contracts')
 
-const club = SUITS.CLUBS.id
-const heart = SUITS.HEARTS.id
-const diamond = SUITS.DIAMONDS.id
-const spade = SUITS.SPADES.id
-const notrump = SUITS.NOTRUMP.id
-
 test('possible bids', () => {
   expect(BIDS).toHaveLength(7 * 5)
 })
@@ -26,7 +20,9 @@ test('simple contract detection', () => {
       createBid(BID_TYPES.PASS),
       createBid(BID_TYPES.PASS),
     ])
-  ).toEqual(createContract(heart, BID_LEVELS['1'], CONTRACT_TYPES.NORMAL, 1))
+  ).toEqual(
+    createContract(SUITS.HEARTS.id, BID_LEVELS['1'], CONTRACT_TYPES.NORMAL, 1)
+  )
 })
 
 test('partner support', () => {
@@ -40,7 +36,9 @@ test('partner support', () => {
       createBid(BID_TYPES.PASS),
       createBid(BID_TYPES.PASS),
     ])
-  ).toEqual(createContract(heart, BID_LEVELS['4'], CONTRACT_TYPES.NORMAL, 2))
+  ).toEqual(
+    createContract(SUITS.HEARTS.id, BID_LEVELS['4'], CONTRACT_TYPES.NORMAL, 2)
+  )
 })
 
 test('double and redouble', () => {
@@ -57,7 +55,9 @@ test('double and redouble', () => {
       createBid(BID_TYPES.PASS),
       createBid(BID_TYPES.PASS),
     ])
-  ).toEqual(createContract(heart, BID_LEVELS['4'], CONTRACT_TYPES.NORMAL, 0))
+  ).toEqual(
+    createContract(SUITS.HEARTS.id, BID_LEVELS['4'], CONTRACT_TYPES.NORMAL, 0)
+  )
 
   expect(
     // Double
@@ -68,7 +68,9 @@ test('double and redouble', () => {
       createBid(BID_TYPES.PASS),
       createBid(BID_TYPES.PASS),
     ])
-  ).toEqual(createContract(heart, BID_LEVELS['1'], CONTRACT_TYPES.DOUBLED, 1))
+  ).toEqual(
+    createContract(SUITS.HEARTS.id, BID_LEVELS['1'], CONTRACT_TYPES.DOUBLED, 1)
+  )
 
   expect(
     // Redouble
@@ -82,5 +84,12 @@ test('double and redouble', () => {
       createBid(BID_TYPES.PASS),
       createBid(BID_TYPES.PASS),
     ])
-  ).toEqual(createContract(heart, BID_LEVELS['1'], CONTRACT_TYPES.REDOUBLED, 1))
+  ).toEqual(
+    createContract(
+      SUITS.HEARTS.id,
+      BID_LEVELS['1'],
+      CONTRACT_TYPES.REDOUBLED,
+      1
+    )
+  )
 })

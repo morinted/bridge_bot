@@ -1,0 +1,11 @@
+{
+  "extends": ["eslint:recommended", "prettier"],
+  "root": true,
+  "parserOptions": {
+    "ecmaVersion": 10
+  },
+  "env": {
+    "node": true,
+    "jest": true
+  }
+}

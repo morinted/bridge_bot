@@ -1,9 +1,8 @@
-const { isEqual, findLast, findLastIndex } = require('lodash')
+const { isEqual, findLastIndex } = require('lodash')
 const { getHands, cardToString } = require('./deck')
 const {
   BID_TYPES,
   getContract,
-  createBid,
   PASS,
   DOUBLE,
   REDOUBLE,
@@ -62,7 +61,6 @@ const startGame = (dealer, second, third, fourth) => {
 }
 
 const makeBid = state => {
-  const { turn, bids } = state
   return bid => {
     state.bids = [...state.bids, bid]
 
@@ -87,7 +85,6 @@ const makeBid = state => {
 }
 
 const layCard = state => {
-  const { turn } = state
   return card => {
     state.trick = [...state.trick, card]
     // Consume card.
