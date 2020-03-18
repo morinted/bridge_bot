@@ -239,7 +239,7 @@ module.exports = function(controller) {
           threadMessage.user,
           threadMessage.ts
         )
-        bidMessage = await bot.say(bidText)
+        bidMessage = await bot.say(bidText + nextBidMessage)
       }
       await updatePlayerHands(bot)
     } else if (
@@ -289,7 +289,11 @@ module.exports = function(controller) {
         trickTexts.push(handSummary)
       }
       const nextTrickMessage =
-        state.phase === PHASES.TRICK ? `\n_Waiting for <@${state.turn}>…_` : ''
+        state.phase === PHASES.TRICK
+          ? state.turn === state.dummy
+            ? `\n_Waiting for <@${state.declarer}> to play dummy…_`
+            : `\n_Waiting for <@${state.turn}>…_`
+          : ''
 
       if (trickMessage) {
         await bot.updateMessage({
