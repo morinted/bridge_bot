@@ -44,11 +44,13 @@ module.exports = function(controller) {
     const contextText = !hasActions
       ? ''
       : state.phase === PHASES.BID
-      ? bidTexts.join('\n') // Show bidding as it's been so far
+      ? `${bidTexts.join('\n')}\n\n` // Show bidding as it's been so far
       : state.phase === PHASES.FIRST_LEAD
-      ? bidTexts.slice(-1)[0] // Display contract
+      ? `${bidTexts.slice(-1)[0]}\n\n` // Display contract
       : state.phase === PHASES.TRICK || state.phase === PHASES.TRICK_WON
-      ? `${getDummyHand()}\n\n${trickTexts.join('\n\n')}` // Show dummy and current/last trick.
+      ? `${getDummyHand()}\n\n*Trick*:\n${trickTexts.join(
+          '\n'
+        )}\n\n*Your hand:*\n` // Show dummy and current/last trick.
       : ''
 
     const trickHintText = isPlayerTurn
@@ -223,7 +225,8 @@ module.exports = function(controller) {
           }>, first lead <@${state.turn}>`
         )
       }
-      const nextBidMessage = `\nNext bid: <@${state.turn}>`
+      const nextBidMessage =
+        state.phase === PHASES.BID ? `\n_Waiting for <@${state.turn}>…_` : ''
       if (bidMessage) {
         await bot.updateMessage({
           text: bidTexts.join('\n') + nextBidMessage,
@@ -285,7 +288,7 @@ module.exports = function(controller) {
         trickTexts.push(handSummary)
       }
       const nextTrickMessage =
-        state.phase === PHASES.TRICK ? `\nNext lay: <@${state.turn}>` : ''
+        state.phase === PHASES.TRICK ? `\n_Waiting for <@${state.turn}>…_` : ''
 
       if (trickMessage) {
         await bot.updateMessage({
