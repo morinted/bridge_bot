@@ -110,7 +110,7 @@ test('scoring of trick and game', () => {
     trick: [
       createCard(SUITS.HEARTS.id, 'K'),
       createCard(SUITS.CLUBS.id, '2'),
-      createCard(SUITS.HEARTS.id, '10'),
+      createCard(SUITS.HEARTS.id, 'T'),
     ],
     declarerTricks: 6,
     opponentTricks: 6,

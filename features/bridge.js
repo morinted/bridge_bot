@@ -1,5 +1,6 @@
 const { chunk, isEqual, uniq } = require('lodash')
 const { bidToString } = require('../bridge/bidding')
+const uuid = require('uuid').v4
 const {
   startGame,
   playerHandForMessage,
@@ -10,20 +11,28 @@ const {
 const { cardToString } = require('../bridge/deck')
 const { contractToString } = require('../bridge/contracts')
 
-module.exports = function(controller) {
-  let state,
-    layCard,
+const games = {}
+const createGame = (state, makeBid, threadMessage) => {
+  const game = {
+    state,
+    layCard: null,
     makeBid,
-    playerMessages,
+    playerMessages: {},
     threadMessage,
-    players,
-    bidMessage,
-    trickMessage,
-    bidTexts,
-    trickTexts,
-    handSummary
+    bidMessage: null,
+    trickMessage: null,
+    bidTexts: [],
+    trickTexts: [],
+    handSummary: '',
+    uuid: uuid(),
+  }
+  games[game.uuid] = game
+  return game
+}
 
-  const getInteractiveHandMessage = player => {
+module.exports = function(controller) {
+  const getInteractiveHandMessage = (player, game) => {
+    const { state } = game
     const isDeclarer = player === state.declarer
 
     const leading =
@@ -33,9 +42,9 @@ module.exports = function(controller) {
       (isDeclarer && state.turn === state.dummy) || state.turn === player
 
     const actions = [
-      ...bidActions(player, state),
-      ...cardActions(player, state),
-      ...(isDeclarer ? cardActions(state.dummy, state) : []),
+      ...bidActions(player, game),
+      ...cardActions(player, game),
+      ...(isDeclarer ? cardActions(state.dummy, game) : []),
     ]
 
     // When there are actions, give more context for mobile users.
@@ -44,11 +53,11 @@ module.exports = function(controller) {
     const contextText = !hasActions
       ? ''
       : state.phase === PHASES.BID
-      ? `${bidTexts.join('\n')}\n\n` // Show bidding as it's been so far
+      ? `${game.bidTexts.join('\n')}\n\n` // Show bidding as it's been so far
       : state.phase === PHASES.FIRST_LEAD
-      ? `${bidTexts.slice(-1)[0]}\n\n` // Display contract
+      ? `${game.bidTexts.slice(-1)[0]}\n\n` // Display contract
       : state.phase === PHASES.TRICK || state.phase === PHASES.TRICK_WON
-      ? `${getDummyHand()}\n\n*Trick*:\n${trickTexts.join(
+      ? `${getDummyHand(game)}\n\n*Trick*:\n${game.trickTexts.join(
           '\n'
         )}\n\n*Your hand:*\n` // Show dummy and current/last trick.
       : ''
@@ -82,64 +91,78 @@ module.exports = function(controller) {
     }
   }
 
-  const updatePlayerHands = async bot => {
-    for (let player of players) {
+  const updatePlayerHands = async (bot, game) => {
+    const { state } = game
+    for (let player of state.players) {
+      if (state.phase === PHASES.RESULT) {
+        await bot.deleteMessage(game.playerMessages[player])
+        continue
+      }
+
       // Dummy does not play.
       if (player === state.dummy) continue
       const targetPlayer = player === state.dummy ? state.declarer : player
-      const handMessage = getInteractiveHandMessage(targetPlayer)
+      const handMessage = getInteractiveHandMessage(targetPlayer, game)
 
-      if (!playerMessages[player] || handMessage.blocks.length > 1) {
+      if (!game.playerMessages[player] || handMessage.blocks.length > 1) {
         await bot.startPrivateConversation(player)
         const sent = await bot.say(handMessage)
-        if (playerMessages[player]) {
+        if (game.playerMessages[player]) {
           // We delete the old message when providing actions.
-          await bot.deleteMessage(playerMessages[player])
+          await bot.deleteMessage(game.playerMessages[player])
         }
-        playerMessages[player] = sent
+        game.playerMessages[player] = sent
       }
     }
   }
 
-  const bidActions = (player, state) => {
+  const bidActions = (player, game) => {
+    const { state } = game
     if (state.turn !== player) return []
     const bids = getPossibleBids(state)
-    return chunk(bids.slice(0, 20).map(bidToButton), 5).map(buttons => ({
+    return chunk(
+      bids.slice(0, 20).map(bid => bidToButton(bid, game)),
+      5
+    ).map(buttons => ({
       type: 'actions',
       elements: buttons,
     }))
   }
 
-  const bidToButton = bid => ({
+  const bidToButton = (bid, game) => ({
     type: 'button',
     text: {
       type: 'plain_text',
       text: bidToString(bid),
     },
-    value: JSON.stringify(bid),
+    value: JSON.stringify({ ...bid, uuid: game.uuid }),
   })
 
-  const cardActions = (player, state) => {
+  const cardActions = (player, game) => {
+    const { state } = game
     if (state.turn !== player) return []
     const cards = getPossibleCards(state)
-    return chunk(cards.map(cardToButton), 5).map(buttons => ({
+    return chunk(
+      cards.map(card => cardToButton(card, game)),
+      5
+    ).map(buttons => ({
       type: 'actions',
       elements: buttons,
     }))
   }
 
-  const cardToButton = card => ({
+  const cardToButton = (card, game) => ({
     type: 'button',
     text: {
       type: 'plain_text',
       emoji: true,
       text: cardToString(card),
     },
-    value: JSON.stringify(card),
+    value: JSON.stringify({ ...card, uuid: game.uuid }),
   })
 
-  const getDummyHand = () =>
-    `*Dummy:*\n${playerHandForMessage(state.dummy, state)}`
+  const getDummyHand = game =>
+    `*Dummy:*\n${playerHandForMessage(game.state.dummy, game)}`
 
   controller.hears('deal', 'message', async (bot, message) => {
     if (!message.text.startsWith('deal ')) return
@@ -178,142 +201,159 @@ module.exports = function(controller) {
       return
     }
 
-    bidTexts = []
-    trickTexts = []
-    threadMessage = message
-    bidMessage = null
-    trickMessage = null
-    playerMessages = {}
+    const { state, makeBid } = startGame(...mentionedPlayers)
+    const game = createGame(state, makeBid, message)
+    const { players } = state
 
-    players = mentionedPlayers
-    ;({ state, makeBid } = startGame(...players))
-
-    handSummary = players
+    game.handSummary = game.state.players
       .map(player => `\n<@${player}>:\n${playerHandForMessage(player, state)}`)
       .join('\n')
     await bot.replyInThread(
       message,
       `Welcome to the game. Dealer is <@${dealer}>, partner is <@${players[2]}>. Opposing is <@${players[1]}> and <@${players[3]}>. <@${state.turn}> has first bid.`
     )
-    await updatePlayerHands(bot)
+    await updatePlayerHands(bot, game)
   })
 
   controller.on('block_actions', async (bot, message) => {
-    const trickMessageStats = () =>
-      `${
-        state.declarerTricks ? `*Declarer Tricks:* ${state.declarerTricks}` : ''
-      }\n${
-        state.opponentTricks ? `*Opponent Tricks:* ${state.opponentTricks}` : ''
-      }\n\n${getDummyHand()}\n\n`
+    const payload = JSON.parse(
+      message.incoming_message.channelData.actions[0].value
+    )
+    const { uuid } = payload
+    const game = games[uuid]
+    if (!game) {
+      await bot.replyInteractive(message, 'Can not find that game, sorry.')
+      return
+    }
 
-    if (state.phase === PHASES.BID) {
+    const trickMessageStats = game =>
+      `${
+        game.state.declarerTricks
+          ? `*Declarer Tricks:* ${game.state.declarerTricks}`
+          : ''
+      }\n${
+        game.state.opponentTricks
+          ? `*Opponent Tricks:* ${game.state.opponentTricks}`
+          : ''
+      }\n\n${getDummyHand(game)}\n\n`
+
+    if (game.state.phase === PHASES.BID) {
       // Clear out buttons once a selection has been made.
       await bot.replyInteractive(
         message,
-        playerHandForMessage(state.turn, state)
+        playerHandForMessage(game.state.turn, game)
       )
-      const bid = JSON.parse(
-        message.incoming_message.channelData.actions[0].value
-      )
-      const bidText = `<@${state.turn}>: ${bidToString(bid)}`
-      bidTexts.push(bidText)
-      ;({ state, layCard, makeBid } = makeBid(bid))
+      const bid = payload
+      const bidText = `<@${game.state.turn}>: ${bidToString(bid)}`
+      game.bidTexts.push(bidText)
+      const bidMade = game.makeBid(bid)
+      game.layCard = bidMade.layCard
+      game.makeBid = bidMade.makeBid
+      game.state = bidMade.state
 
-      if (state.phase === PHASES.FIRST_LEAD) {
-        bidTexts.push(
-          `*${contractToString(state.contract)}* declared by <@${
-            state.declarer
-          }>, first lead <@${state.turn}>`
+      if (game.state.phase === PHASES.FIRST_LEAD) {
+        game.bidTexts.push(
+          `*${contractToString(game.state.contract)}* declared by <@${
+            game.state.declarer
+          }>, first lead <@${game.state.turn}>`
         )
       }
       const nextBidMessage =
-        state.phase === PHASES.BID ? `\n_Waiting for <@${state.turn}>…_` : ''
-      if (bidMessage) {
+        game.state.phase === PHASES.BID
+          ? `\n_Waiting for <@${game.state.turn}>…_`
+          : ''
+      if (game.bidMessage) {
         await bot.updateMessage({
-          text: bidTexts.join('\n') + nextBidMessage,
-          ...bidMessage,
+          text: game.bidTexts.join('\n') + nextBidMessage,
+          ...game.bidMessage,
         })
       } else {
         await bot.startConversationInThread(
-          threadMessage.channel,
-          threadMessage.user,
-          threadMessage.ts
+          game.threadMessage.channel,
+          game.threadMessage.user,
+          game.threadMessage.ts
         )
-        bidMessage = await bot.say(bidText + nextBidMessage)
+        game.bidMessage = await bot.say(bidText + nextBidMessage)
       }
       await updatePlayerHands(bot)
     } else if (
       [PHASES.FIRST_LEAD, PHASES.TRICK, PHASES.TRICK_WON].some(
-        phase => phase === state.phase
+        phase => phase === game.state.phase
       )
     ) {
-      if (state.phase === PHASES.TRICK_WON) {
-        trickTexts = []
+      if (game.state.phase === PHASES.TRICK_WON) {
+        game.trickTexts = []
       }
-      const card = JSON.parse(
-        message.incoming_message.channelData.actions[0].value
-      )
+      const card = payload
       if (
-        getPossibleCards(state).every(
+        getPossibleCards(game.state).every(
           playableCard => !isEqual(playableCard, card)
         )
       ) {
         return // Impossible play, just ignore.
       }
-      const getDummyNote = () => (state.turn === state.dummy ? '(Dummy) ' : '')
-      const cardText = `<@${state.turn}>: ${cardToString(
+      const getDummyNote = () =>
+        game.state.turn === game.state.dummy ? '(Dummy) ' : ''
+      const cardText = `<@${game.state.turn}>: ${cardToString(
         card
       )} ${getDummyNote()}`
-      const player = state.turn
-      ;({ state, layCard } = layCard(card))
+      const player = game.state.turn
+      const cardLaid = game.layCard(card)
+      game.state = cardLaid.state
+      game.layCard = cardLaid.layCard
       // Clear out buttons once card has been played
-      const targetPlayer = player === state.dummy ? state.declarer : player
-      const handMessage = getInteractiveHandMessage(targetPlayer)
+      const targetPlayer =
+        player === game.state.dummy ? game.state.declarer : player
+      game.trickTexts.push(cardText)
+      const handMessage = getInteractiveHandMessage(targetPlayer, game)
       await bot.replyInteractive(message, handMessage)
-      trickTexts.push(cardText)
-      if (state.phase === PHASES.TRICK_WON) {
-        trickTexts.push(`<@${state.turn}> ${getDummyNote()}wins.`)
+      if (game.state.phase === PHASES.TRICK_WON) {
+        game.trickTexts.push(`<@${game.state.turn}> ${getDummyNote()}wins.`)
       }
 
-      if (state.phase === PHASES.RESULT) {
-        const winners = state.contractResult >= 0 ? 'Declarers' : 'Opponents'
-        const overUnder = state.contractResult >= 0 ? 'Over' : 'Under'
-        trickTexts.push(
+      if (game.state.phase === PHASES.RESULT) {
+        const winners =
+          game.state.contractResult >= 0 ? 'Declarers' : 'Opponents'
+        const overUnder = game.state.contractResult >= 0 ? 'Over' : 'Under'
+        game.trickTexts.push(
           '',
           `${winners} win.${
-            state.contractResult
-              ? ` ${Math.abs(state.contractResult)} ${overUnder}!`
+            game.state.contractResult
+              ? ` ${Math.abs(game.state.contractResult)} ${overUnder}!`
               : ''
           }`
         )
-        trickTexts.push(handSummary)
+        game.trickTexts.push(game.handSummary)
       }
       const nextTrickMessage =
-        state.phase === PHASES.TRICK
-          ? state.turn === state.dummy
-            ? `\n_Waiting for <@${state.declarer}> to play dummy…_`
-            : `\n_Waiting for <@${state.turn}>…_`
+        game.state.phase === PHASES.TRICK
+          ? game.state.turn === game.state.dummy
+            ? `\n_Waiting for <@${game.state.declarer}> to play dummy…_`
+            : `\n_Waiting for <@${game.state.turn}>…_`
           : ''
 
-      if (trickMessage) {
+      if (game.trickMessage) {
         await bot.updateMessage({
-          text: trickMessageStats() + trickTexts.join('\n') + nextTrickMessage,
-          ...trickMessage,
+          text:
+            trickMessageStats(game) +
+            game.trickTexts.join('\n') +
+            nextTrickMessage,
+          ...game.trickMessage,
         })
       } else {
         await bot.startConversationInThread(
-          threadMessage.channel,
-          threadMessage.user,
-          threadMessage.ts
+          game.threadMessage.channel,
+          game.threadMessage.user,
+          game.threadMessage.ts
         )
-        trickMessage = await bot.say(trickMessageStats() + cardText)
+        game.trickMessage = await bot.say(trickMessageStats(game) + cardText)
       }
       if (handMessage.blocks.length === 1) {
         // Update player hands unless the last player is going again.
-        await updatePlayerHands(bot)
+        await updatePlayerHands(bot, game)
       }
-      if (state.phase === PHASES.RESULT) {
-        state = null
+      if (game.state.phase === PHASES.RESULT) {
+        game.state = null
       }
     }
   })

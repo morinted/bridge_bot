@@ -1,7 +1,7 @@
 const { flatMap, shuffle } = require('lodash')
 const { SUITS, compareSuits } = require('./suits')
 
-const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
+const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A']
 const RANK_INDEX = RANKS.reduce((acc, rank, index) => {
   acc[rank] = index
   return acc
