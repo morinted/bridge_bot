@@ -277,7 +277,7 @@ module.exports = function(controller) {
         )
         game.bidMessage = await bot.say(bidText + nextBidMessage)
       }
-      await updatePlayerHands(bot)
+      await updatePlayerHands(bot, game)
     } else if (
       [PHASES.FIRST_LEAD, PHASES.TRICK, PHASES.TRICK_WON].some(
         phase => phase === game.state.phase
