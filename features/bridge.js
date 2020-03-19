@@ -218,10 +218,9 @@ module.exports = function(controller) {
   })
 
   controller.on('block_actions', async (bot, message) => {
-    const payload = JSON.parse(
+    const { uuid, ...payload } = JSON.parse(
       message.incoming_message.channelData.actions[0].value
     )
-    const { uuid } = payload
     const game = games[uuid]
     if (!game) {
       await bot.replyInteractive(message, 'Can not find that game, sorry.')
