@@ -72,7 +72,7 @@ module.exports = function(controller) {
 
     const textToSend =
       contextText +
-      playerHandForMessage(player, state) +
+      playerHandForMessage(player, game.state) +
       (isDeclarer && state.turn === state.dummy
         ? '\n\n*Play from dummy.*'
         : '') +
@@ -162,7 +162,7 @@ module.exports = function(controller) {
   })
 
   const getDummyHand = game =>
-    `*Dummy:*\n${playerHandForMessage(game.state.dummy, game)}`
+    `*Dummy:*\n${playerHandForMessage(game.state.dummy, game.state)}`
 
   controller.hears('deal', 'message', async (bot, message) => {
     if (!message.text.startsWith('deal ')) return
@@ -206,7 +206,9 @@ module.exports = function(controller) {
     const { players } = state
 
     game.handSummary = game.state.players
-      .map(player => `\n<@${player}>:\n${playerHandForMessage(player, state)}`)
+      .map(
+        player => `\n<@${player}>:\n${playerHandForMessage(player, game.state)}`
+      )
       .join('\n')
     await bot.replyInThread(
       message,
@@ -241,7 +243,7 @@ module.exports = function(controller) {
       // Clear out buttons once a selection has been made.
       await bot.replyInteractive(
         message,
-        playerHandForMessage(game.state.turn, game)
+        playerHandForMessage(game.state.turn, game.state)
       )
       const bid = payload
       const bidText = `<@${game.state.turn}>: ${bidToString(bid)}`
