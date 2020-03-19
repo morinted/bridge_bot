@@ -166,8 +166,8 @@ module.exports = function(controller) {
 
   controller.hears('deal', 'message', async (bot, message) => {
     if (!message.text.startsWith('deal ')) return
-    // Game ongoing
-    if (state) return
+    // Log message for debug
+    console.log(message)
     const dealer = message.user
     let mentionedPlayers
     try {
