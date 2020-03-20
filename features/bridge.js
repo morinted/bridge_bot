@@ -24,6 +24,7 @@ const createGame = (state, makeBid, threadMessage) => {
     bidTexts: [],
     trickTexts: [],
     handSummary: '',
+    incomingMessageId: threadMessage.id,
     uuid: uuid(),
   }
   games[game.uuid] = game
@@ -167,7 +168,11 @@ module.exports = function(controller) {
   controller.hears('deal', 'message', async (bot, message) => {
     if (!message.text.startsWith('deal ')) return
     // Log message for debug
-    console.log(message)
+    const incomingMessageId = message.id
+    if (Object.values(games).some(game => game.incomingMessageId === incomingMessageId)) {
+      console.log('Ignoring duplicate game')
+      return
+    }
     const dealer = message.user
     let mentionedPlayers
     try {
