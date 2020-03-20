@@ -231,6 +231,9 @@ module.exports = function(controller) {
       await bot.replyInteractive(message, 'Can not find that game, sorry.')
       return
     }
+    if (game.state.turn !== message.incoming_message.from.id) {
+      return // Impossible play -- maybe a late call?
+    }
 
     const trickMessageStats = game =>
       `${
