@@ -231,7 +231,13 @@ module.exports = function(controller) {
       await bot.replyInteractive(message, 'Can not find that game, sorry.')
       return
     }
-    if (game.state.turn !== message.incoming_message.from.id) {
+    const userId = message.incoming_message.from.id
+    const canPlay = // Ensure it's the current player's turn (or the declarer playing the dummy)
+      game.state.turn === userId ||
+      game.state.turn === game.state.dummy && game.state.declarer === userId
+    if (!canPlay) {
+      console.error('Blocking action from', message.incoming_message.from)
+      console.error('Current turn is,', game.state.turn)
       return // Impossible play -- maybe a late call?
     }
 
@@ -317,7 +323,7 @@ module.exports = function(controller) {
       const handMessage = getInteractiveHandMessage(targetPlayer, game)
       await bot.replyInteractive(message, handMessage)
       if (game.state.phase === PHASES.TRICK_WON) {
-        game.trickTexts.push(`<@${game.state.turn}> ${getDummyNote()}wins.`)
+        game.trickTexts.push(`_<@${game.state.turn}> ${getDummyNote()}wins. Waiting for their lead…_`)
       }
 
       if (game.state.phase === PHASES.RESULT) {
@@ -332,10 +338,10 @@ module.exports = function(controller) {
               : ''
           }`
         )
-        game.trickTexts.push(game.handSummary)
+        game.trickTexts.unshift(game.handSummary)
       }
       const nextTrickMessage =
-        game.state.phase === PHASES.TRICK
+        (game.state.phase === PHASES.TRICK || game.state.phase === PHASES.FIRST_LEAD)
           ? game.state.turn === game.state.dummy
             ? `\n_Waiting for <@${game.state.declarer}> to play dummy…_`
             : `\n_Waiting for <@${game.state.turn}>…_`
