@@ -168,7 +168,7 @@ module.exports = function(controller) {
   controller.hears('deal', 'message', async (bot, message) => {
     if (!message.text.startsWith('deal ')) return
     // Log message for debug
-    const incomingMessageId = message.id
+    const incomingMessageId = message.incoming_message.id
     if (Object.values(games).some(game => game.incomingMessageId === incomingMessageId)) {
       console.log('Ignoring duplicate game')
       return
