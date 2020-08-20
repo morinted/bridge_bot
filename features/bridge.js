@@ -373,7 +373,7 @@ module.exports = function (controller) {
               player === game.state.dummy ? '(Dummy) ' : ''
             } ${game.currentTrick[player] || '…'}`
           })
-          .join('\n')
+          .join('\n') + '\n'
       const nextTrickMessage =
         game.state.phase === PHASES.TRICK ||
         game.state.phase === PHASES.FIRST_LEAD
