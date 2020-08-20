@@ -330,10 +330,11 @@ module.exports = function (controller) {
       }
       const getDummyNote = () =>
         game.state.turn === game.state.dummy ? '(Dummy) ' : ''
-      const cardText = `<@${game.state.turn}>: ${cardToString(
+      const cardText = `<@${game.state.turn}> ${cardToString(
         card
       )} ${getDummyNote()}`
       const player = game.state.turn
+      game.currentTrick[player] = cardToString(card)
       const cardLaid = game.layCard(card)
       game.state = cardLaid.state
       game.layCard = cardLaid.layCard
@@ -341,7 +342,6 @@ module.exports = function (controller) {
       const targetPlayer =
         player === game.state.dummy ? game.state.declarer : player
       // game.trickTexts.push(cardText)
-      game.currentTrick[game.state.turn] = cardToString(card)
       const handMessage = getInteractiveHandMessage(targetPlayer, game)
       await bot.replyInteractive(message, handMessage)
       if (game.state.phase === PHASES.TRICK_WON) {
@@ -371,7 +371,7 @@ module.exports = function (controller) {
           .map((player) => {
             return `<@${player}> ${
               player === game.state.dummy ? '(Dummy) ' : ''
-            }: ${game.currentTrick[player] || ''}`
+            } ${game.currentTrick[player] || '…'}`
           })
           .join('\n')
       const nextTrickMessage =
