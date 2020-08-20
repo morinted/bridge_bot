@@ -24,6 +24,7 @@ const createGame = (state, makeBid, threadMessage) => {
     trickMessage: null,
     bidTexts: [],
     trickTexts: [],
+    currentTrick: {},
     handSummary: '',
     incomingMessageId: threadMessage.id,
     uuid: uuid(),
@@ -285,6 +286,7 @@ module.exports = function (controller) {
         game.state.phase === PHASES.BID
           ? `\n_Waiting for <@${game.state.turn}>…_`
           : ''
+
       if (game.bidMessage) {
         await bot.updateMessage({
           text: game.bidTexts.join('\n') + nextBidMessage,
@@ -304,8 +306,19 @@ module.exports = function (controller) {
         (phase) => phase === game.state.phase
       )
     ) {
-      if (game.state.phase === PHASES.TRICK_WON) {
+      if (
+        game.state.phase === PHASES.TRICK_WON ||
+        game.state.phase === PHASES.FIRST_LEAD
+      ) {
         game.trickTexts = []
+        const players = [...game.state.players]
+        const removedPlayers = players.splice(
+          0,
+          game.state.players.indexOf(game.state.turn)
+        )
+        game.currentTrick = {
+          order: [...players, ...removedPlayers],
+        }
       }
       const card = payload
       if (
@@ -327,7 +340,8 @@ module.exports = function (controller) {
       // Clear out buttons once card has been played
       const targetPlayer =
         player === game.state.dummy ? game.state.declarer : player
-      game.trickTexts.push(cardText)
+      // game.trickTexts.push(cardText)
+      game.currentTrick[game.state.turn] = cardToString(card)
       const handMessage = getInteractiveHandMessage(targetPlayer, game)
       await bot.replyInteractive(message, handMessage)
       if (game.state.phase === PHASES.TRICK_WON) {
@@ -352,6 +366,14 @@ module.exports = function (controller) {
         )
         game.trickTexts.unshift(game.handSummary)
       }
+      const formatCurrentTrick = () =>
+        game.currentTrick.order
+          .map((player) => {
+            return `<@${player}> ${
+              player === game.state.dummy ? '(Dummy) ' : ''
+            }: ${game.currentTrick[player] || ''}`
+          })
+          .join('\n')
       const nextTrickMessage =
         game.state.phase === PHASES.TRICK ||
         game.state.phase === PHASES.FIRST_LEAD
@@ -364,6 +386,7 @@ module.exports = function (controller) {
         await bot.updateMessage({
           text:
             trickMessageStats(game) +
+            formatCurrentTrick() +
             game.trickTexts.join('\n') +
             nextTrickMessage,
           ...game.trickMessage,

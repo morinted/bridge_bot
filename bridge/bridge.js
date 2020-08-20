@@ -1,3 +1,5 @@
+/* eslint-disable no-case-declarations */
+/* eslint-disable no-fallthrough */
 const { isEqual, findLastIndex } = require('lodash')
 const { getHands, cardToString } = require('./deck')
 const {

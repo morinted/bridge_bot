@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node bot.js",
     "test": "jest",
+    "lint": "eslint bridge features --fix",
     "watch": "jest --watch"
   },
   "dependencies": {
