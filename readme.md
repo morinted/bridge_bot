@@ -1,10 +1,22 @@
-# Botkit Starter Kit
+# Bridge Bot for Slack
 
-This is a Botkit starter kit for slack, created with the [Yeoman generator](https://github.com/howdyai/botkit/tree/master/packages/generator-botkit#readme).
+Play the card game Bridge on Slack.
 
-To complete the configuration of this bot, make sure to update the included `.env` file with your platform tokens and credentials.
+## How it works
 
-[Botkit Docs](https://botkit.ai/docs/v4)
+- Type "deal @three @other @players"
+- Everyone is DM'd a hand
+- Bridge bot will reply to your deal message with common information
+- Bidding happens through buttons in your DMs
+- Bid is shown in common thread
+- Once play has started, users will have DM buttons for playable cards
+- Current trick and dummy's hand will be shown in thread
+- Upon game end, bot tallies how much over/under the declarers are
+- Full hands are revealed
 
-This bot is powered by [a folder full of modules](https://botkit.ai/docs/v4/core.html#organize-your-bot-code). 
-Edit the samples, and add your own in the [features/](features/) folder.
+## Setup
+
+1. Clone repo
+2. `npm install`
+3. Populate `.env` with credentials
+4. `npm start`

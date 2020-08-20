@@ -12,6 +12,7 @@ const { cardToString } = require('../bridge/deck')
 const { contractToString } = require('../bridge/contracts')
 
 const games = {}
+const handledMessages = []
 const createGame = (state, makeBid, threadMessage) => {
   const game = {
     state,
@@ -31,7 +32,7 @@ const createGame = (state, makeBid, threadMessage) => {
   return game
 }
 
-module.exports = function(controller) {
+module.exports = function (controller) {
   const getInteractiveHandMessage = (player, game) => {
     const { state } = game
     const isDeclarer = player === state.declarer
@@ -122,9 +123,9 @@ module.exports = function(controller) {
     if (state.turn !== player) return []
     const bids = getPossibleBids(state)
     return chunk(
-      bids.slice(0, 20).map(bid => bidToButton(bid, game)),
+      bids.slice(0, 20).map((bid) => bidToButton(bid, game)),
       5
-    ).map(buttons => ({
+    ).map((buttons) => ({
       type: 'actions',
       elements: buttons,
     }))
@@ -144,9 +145,9 @@ module.exports = function(controller) {
     if (state.turn !== player) return []
     const cards = getPossibleCards(state)
     return chunk(
-      cards.map(card => cardToButton(card, game)),
+      cards.map((card) => cardToButton(card, game)),
       5
-    ).map(buttons => ({
+    ).map((buttons) => ({
       type: 'actions',
       elements: buttons,
     }))
@@ -162,14 +163,19 @@ module.exports = function(controller) {
     value: JSON.stringify({ ...card, uuid: game.uuid }),
   })
 
-  const getDummyHand = game =>
+  const getDummyHand = (game) =>
     `*Dummy:*\n${playerHandForMessage(game.state.dummy, game.state)}`
 
   controller.hears('deal', 'message', async (bot, message) => {
     if (!message.text.startsWith('deal ')) return
     // Log message for debug
     const incomingMessageId = message.incoming_message.id
-    if (Object.values(games).some(game => game.incomingMessageId === incomingMessageId)) {
+    if (
+      Object.values(games).some(
+        (game) => game.incomingMessageId === incomingMessageId
+      ) ||
+      handledMessages.includes(incomingMessageId)
+    ) {
       console.log('Ignoring duplicate game')
       return
     }
@@ -183,7 +189,7 @@ module.exports = function(controller) {
         .trim()
         .split('deal ')[1]
         .split(' ')
-        .map(mention => {
+        .map((mention) => {
           if (!mention.startsWith('<@')) {
             throw new Error('not a mention')
           } else if (!mention.endsWith('>')) {
@@ -199,6 +205,7 @@ module.exports = function(controller) {
       }
     } catch (e) {
       console.error(e)
+      handledMessages.push(incomingMessageId)
       await bot.reply(
         message,
         'You have to mention the three other players to deal a hand.'
@@ -212,7 +219,8 @@ module.exports = function(controller) {
 
     game.handSummary = game.state.players
       .map(
-        player => `\n<@${player}>:\n${playerHandForMessage(player, game.state)}`
+        (player) =>
+          `\n<@${player}>:\n${playerHandForMessage(player, game.state)}`
       )
       .join('\n')
     await bot.replyInThread(
@@ -234,14 +242,14 @@ module.exports = function(controller) {
     const userId = message.incoming_message.from.id
     const canPlay = // Ensure it's the current player's turn (or the declarer playing the dummy)
       game.state.turn === userId ||
-      game.state.turn === game.state.dummy && game.state.declarer === userId
+      (game.state.turn === game.state.dummy && game.state.declarer === userId)
     if (!canPlay) {
       console.error('Blocking action from', message.incoming_message.from)
       console.error('Current turn is,', game.state.turn)
       return // Impossible play -- maybe a late call?
     }
 
-    const trickMessageStats = game =>
+    const trickMessageStats = (game) =>
       `${
         game.state.declarerTricks
           ? `*Declarer Tricks:* ${game.state.declarerTricks}`
@@ -293,7 +301,7 @@ module.exports = function(controller) {
       await updatePlayerHands(bot, game)
     } else if (
       [PHASES.FIRST_LEAD, PHASES.TRICK, PHASES.TRICK_WON].some(
-        phase => phase === game.state.phase
+        (phase) => phase === game.state.phase
       )
     ) {
       if (game.state.phase === PHASES.TRICK_WON) {
@@ -302,7 +310,7 @@ module.exports = function(controller) {
       const card = payload
       if (
         getPossibleCards(game.state).every(
-          playableCard => !isEqual(playableCard, card)
+          (playableCard) => !isEqual(playableCard, card)
         )
       ) {
         return // Impossible play, just ignore.
@@ -323,7 +331,11 @@ module.exports = function(controller) {
       const handMessage = getInteractiveHandMessage(targetPlayer, game)
       await bot.replyInteractive(message, handMessage)
       if (game.state.phase === PHASES.TRICK_WON) {
-        game.trickTexts.push(`_<@${game.state.turn}> ${getDummyNote()}wins. Waiting for their lead…_`)
+        game.trickTexts.push(
+          `_<@${
+            game.state.turn
+          }> ${getDummyNote()}wins. Waiting for their lead…_`
+        )
       }
 
       if (game.state.phase === PHASES.RESULT) {
@@ -341,7 +353,8 @@ module.exports = function(controller) {
         game.trickTexts.unshift(game.handSummary)
       }
       const nextTrickMessage =
-        (game.state.phase === PHASES.TRICK || game.state.phase === PHASES.FIRST_LEAD)
+        game.state.phase === PHASES.TRICK ||
+        game.state.phase === PHASES.FIRST_LEAD
           ? game.state.turn === game.state.dummy
             ? `\n_Waiting for <@${game.state.declarer}> to play dummy…_`
             : `\n_Waiting for <@${game.state.turn}>…_`
